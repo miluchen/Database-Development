@@ -11,3 +11,9 @@ Problem definition:
 
 Design details:
 1. The data base have four files: a CONSULTANTS file, a CLIENTS file, a PROJECTS file, and an ASSIGNMENTS file.
+
+CBS tables (elements in parenthesis are key indices):
+	CLIENTS:	 (client_no), client_name, address, city, state, phone, amt_due, date_paid
+	PROJECTS:	 (project_no), project_name, amt_expended, client_no
+	CONSULTANTS: (consultant_no), consultant_name
+	ASSIGNMENTS: (consultant_no, project_no), rate

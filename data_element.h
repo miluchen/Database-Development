@@ -7,6 +7,9 @@
  * D	= date
  ********************************/
 
+#ifndef _DATA_ELEMENT_H_
+#define _DATA_ELEMENT_H_
+
 #define CLIENT_NO 1
 #define CLIENT_NAME 2
 #define ADDRESS 3
@@ -29,3 +32,5 @@ extern int ellen[];
 extern char *denames[];
 extern char eltype[];
 extern char *elmask[];
+
+#endif
