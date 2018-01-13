@@ -9,11 +9,9 @@ Problem definition:
 4. It computes labor charges from the hourly rates of consultants assigned to projects.
 5. You can post expenses directly.
 
-Design details:
+Design details and CBS tables (elements in parenthesis are key indices):
 1. The data base have four files: a CONSULTANTS file, a CLIENTS file, a PROJECTS file, and an ASSIGNMENTS file.
-
-CBS tables (elements in parenthesis are key indices):
-	CLIENTS:	 (client_no), client_name, address, city, state, phone, amt_due, date_paid
-	PROJECTS:	 (project_no), project_name, amt_expended, client_no
-	CONSULTANTS: (consultant_no), consultant_name
-	ASSIGNMENTS: (consultant_no, project_no), rate
+2. CLIENTS:	 (client_no), client_name, address, city, state, phone, amt_due, date_paid
+3. PROJECTS:	 (project_no), project_name, amt_expended, client_no
+4. CONSULTANTS: (consultant_no), consultant_name
+5. ASSIGNMENTS: (consultant_no, project_no), rate
