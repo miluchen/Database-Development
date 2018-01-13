@@ -1,7 +1,7 @@
 /******************************* 
  * 1. file specifications
- * file contents
- * record structure definition
+ * 2. file contents
+ * 3. record structure definition
  *******************************/
 
 #ifndef _FILE_SPEC_H_
