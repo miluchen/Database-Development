@@ -118,7 +118,141 @@ void de_dict() {
 	char *cp, *cp1;
 	int el;
 	while (TRUE) {
+		get_line();
+		if(strncmp(line, "#end dictionary", 15) == 0)
+			break;
+		if (dectr == MXELE) {
+			error(11);
+			continue;
+		}
+		cp = get_word(line);
+		name_val();
+		for (el = 0; el < dectr; el++) {
+			if (strcmp(word, dc[el].dename) == 0) {
+				error(16);
+				continue;
+			}
+		}
+		strcpy(dc[dectr].dename, word);
+		expect_comman(&cp);
+		skip_white(&cp)
+		switch (*cp) {
+			case 'A':
+			case 'Z':
+			case 'C':
+			case 'N':
+			case 'D':
+				break;
+			default:
+				error(4);
+				continue;
+		}
+		dc[dectr].detype = *cp++;
+		expect_comma(&cp);
+		cp = get_word(cp);
+		numb_val();
+		dc[dectr].delen = atoi(word);
+		expect_comma(&cp);
+		skip_white(&cp);
+		if (*cp != '"') {
+			error(5);
+			continue;
+		}
+		cp1 = cp + 1;
+		while (*cp != '"' && *cp1 && *cp1 != '\n')
+			cp1++;
+		if (*cp1++ != '"') {
+			error(5);
+			continue;
+		}
+		*cp1 = '\0';
+		if ((dc[dectr].demask = malloc((cp1-cp) + 1)) == 0) {
+			error(12);
+			depart(1);
+		}
+		strcpy(dc[dectr].demask, cp);
+		dectr++;
+	}
+}
 
+/****** build the file definitions ******/
+void files() {
+	int i, el = 0;
+	if (fctr == MXFILS)
+		error(17);
+	/* get the file name and validate it */
+	get_word(line + 6);
+	name_val();
+	for (i=0; i<fctr; i++) {
+		if (strcmp(word, filename[i]) == 0)
+			error(9);
+	}
+	strcpy(filename[fctr], word);
+	/* process the file's data elements */
+	while (TRUE) {
+		get_line();
+		if (strncmp(line, "#end file", 9) == 0)
+			break;
+		if (el == MXELE) {
+			error(11);
+			continue;
+		}
+		/* get a data element and check whether it's in the dictionary */
+		get_word(line);
+		for (i=0; i<dectr; i++) {
+			if (strcmp(word, dc[i].dename) == 0)
+				break;
+		}
+		if (i == dectr)
+			error(10);
+		else if (fctr < MXFILS)
+			fileele[fctr][el++] = i+1; /* post to file */
+	}
+	if (fctr < MXFILS)
+		fctr++;
+}
+
+/* build the index descriptions */
+void keys() {
+	char *cp;
+	int f, el, x, cat = 0;
+	/* get the file name and check whether it's in the schema */
+	cp = get_word(line + 5);
+	for (f = 0; f < fctr; f++) {
+		if (strcmp(word, filename[f]) == 0)
+			break;
+	}
+	if (f == fctr) {
+		error(13);
+		return;
+	}
+	for (x=0; x<MXINDEX; x++) {
+		if (*ndxele[f][x] == 0)
+			break;
+	}
+	if (x == MXINDEX) {
+		error(14);
+		return;
+	}
+	while (cat < MXCAT) {
+		/* get the index name and check whether it's in the dict */
+		cp = get_word(cp);
+		for (el = 0; el < dectr; el++) {
+			if (strcmp(word, dc[el].dename) == 0)
+				break;
+		}
+		if (el == dectr) {
+			error(10);
+			break;
+		}
+		ndxele[f][x][cat++] = el + 1; /* post element */
+		skip_white(&cp);
+		if (*cp++ != ',')	/* check if concatenated index */
+			break;
+		if (cat == MAXCAT) {
+			error(15);
+			break;
+		}
 	}
 }
 
