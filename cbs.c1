@@ -1,0 +1,56 @@
+
+/* ---------- CBS ---------- */
+
+#define CLIENT_NO 1
+#define CLIENT_NAME 2
+#define ADDRESS 3
+#define CITY 4
+#define STATE 5
+#define ZIP 6
+#define PHONE 7
+#define AMT_DUE 8
+#define PROJECT_NO 9
+#define PROJECT_NAME 10
+#define AMT_EXPENDED 11
+#define CONSULTANT_NO 12
+#define CONSULTANT_NAME 13
+#define RATE 14
+#define PAYMENT 15
+#define EXPENSE 16
+#define HOURS 17
+#define DATE_PAID 18
+
+#define CLIENTS 0
+#define PROJECTS 1
+#define CONSULTANTS 2
+#define ASSIGNMENTS 3
+
+struct clients {
+	char client_no [6];
+	char client_name [26];
+	char address [26];
+	char city [26];
+	char state [3];
+	char zip [6];
+	char phone [11];
+	char amt_due [9];
+	char date_paid [7];
+};
+
+struct projects {
+	char project_no [6];
+	char project_name [26];
+	char amt_expended [10];
+	char client_no [6];
+};
+
+struct consultants {
+	char consultant_no [6];
+	char consultant_name [26];
+};
+
+struct assignments {
+	char consultant_no [6];
+	char project_no [6];
+	char rate [6];
+};

@@ -7,6 +7,8 @@
  */
 
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include "cdata.h"
 
 #define SCHEMA
@@ -61,7 +63,7 @@ static void error(int);
 static void get_line();
 static void skip_white(char **);
 static void lcase(char *, char *);
-static void *get_word(char *);
+static char *get_word(char *);
 static void name_val();
 static void numb_val();
 static void expect_comma(char **);
@@ -101,7 +103,7 @@ int main(int argc, char *argv[]) {
 	if (argc > 1) {
 		if (strcmp(argv[1], "-1") == 0)
 			defout();
-		else if (strnmp(argv[1], "-2") == 0)
+		else if (strcmp(argv[1], "-2") == 0)
 			strout();
 		else if (strcmp(argv[1], "-3") == 0)
 			schout();
@@ -134,8 +136,8 @@ void de_dict() {
 			}
 		}
 		strcpy(dc[dectr].dename, word);
-		expect_comman(&cp);
-		skip_white(&cp)
+		expect_comma(&cp);
+		skip_white(&cp);
 		switch (*cp) {
 			case 'A':
 			case 'Z':
@@ -159,7 +161,7 @@ void de_dict() {
 			continue;
 		}
 		cp1 = cp + 1;
-		while (*cp != '"' && *cp1 && *cp1 != '\n')
+		while (*cp1 != '"' && *cp1 && *cp1 != '\n')
 			cp1++;
 		if (*cp1++ != '"') {
 			error(5);
@@ -249,11 +251,117 @@ void keys() {
 		skip_white(&cp);
 		if (*cp++ != ',')	/* check if concatenated index */
 			break;
-		if (cat == MAXCAT) {
+		if (cat == MXCAT) {
 			error(15);
 			break;
 		}
 	}
+}
+
+/****** write the schema source language ******/
+void schout() {
+	int f, el, x, x1, cat, fel;
+	char name[NAMLEN+1];
+
+	/* data element lengths */
+	printf("\n\nint ellen[] = {");
+	for (el = 0; el < dectr; el++) {
+		if ((el % 25) == 0)
+			printf("\n\t");
+		printf((el < dectr-1 ? "%d," : "%d"), dc[el].delen);
+	}
+	printf("\n};\n");
+	/* write the file contents arrays */
+	for (f = 0; f < fctr; f++) {
+		lcase(name, filename[f]);
+		printf("\n\nint f_%s[] = {", name);
+		el = 0;
+		while ((fel = fileele[f][el++]) != 0)
+			printf("\n\t%s,", dc[fel-1].dename);
+		printf("\n\t0\n};");
+	}
+	/* write the file list pointer array */
+	printf("\n\nint *file_ele[] = {");
+	for (f = 0; f < fctr; f++) {
+		lcase(name, filename[f]);
+		printf("\n\tf_%s,", name);
+	}
+	printf("\n\t0\n};\n");
+	/* write the index arrays */
+	for (f = 0; f < fctr; f++) {
+		lcase(name, filename[f]);
+		for (x = 0; x < MXINDEX; x++) {
+			if (*ndxele[f][x] == 0)
+				break;
+			printf("\nint x%d_%s[] = {", x+1, name);
+			for (cat = 0; cat < MXCAT; cat++)
+				if (ndxele[f][x][cat])
+					printf("\n\t%s,", dc[ndxele[f][x][cat]-1].dename);
+			printf("\n\t0\n};\n");
+		}
+		printf("\nint *x_%s[] = {", name);
+		for (x1 = 0; x1 < x; x1++)
+			printf("\n\tx%d_%s,", x1+1, name);
+		printf("\n\t0\n};\n");
+	}
+	printf("\nint **index_ele[] = {");
+	for (f = 0; f < fctr; f++) {
+		lcase(name, filename[f]);
+		printf("\n\tx_%s,", name);
+	}
+	printf("\n\t0\n};\n");
+}
+
+/****** write the schema #defines and struct definitions ******/
+void defout() {
+	int f, el, fel;
+	char name[NAMLEN+1];
+
+	/* data element defines */
+	for (el = 0; el < dectr; el++)
+		printf("\n#define %s %d", dc[el].dename, el + 1);
+	putchar('\n');
+	/* write the file #define statements */
+	for (f = 0; f < fctr; f++)
+		printf("\n#define %s %d", filename[f], f);
+	putchar('\n');
+	/* write the record structures */
+	for (f = 0; f < fctr; f++) {
+		lcase(name, filename[f]);
+		printf("\nstruct %s {", name);
+		el = 0;
+		while ((fel = fileele[f][el++]) != 0) {
+			lcase(name, dc[fel-1].dename);
+			printf("\n\tchar %s [%d];", name, dc[fel-1].delen+1);
+		}
+		printf("\n};\n");
+	}
+}
+
+/* write the file and data element ascii strings */
+void strout() {
+	int el, f;
+
+	/* data element ascii names */
+	printf("\nchar *denames[] = {");
+	for (el = 0; el < dectr; el++)
+		printf("\n\t\"%s\",", dc[el].dename);
+	printf("\n\t0\n};\n");
+	/* data element types */
+	printf("\nchar eltype[] = \"");
+	for (el = 0; el < dectr; el++)
+		putchar(dc[el].detype);
+	printf("\";\n");
+	/* data element display masks */
+	printf("\nchar *elmask[] = {");
+	for (el = 0; el < dectr; el++)
+		printf((el < dectr-1 ? "\n\t%s," : "\n\t%s"), dc[el].demask);
+	printf("\n};\n");
+	/* write the ascii file name strings */
+	printf("\nchar *dbfiles[] = {");
+	for (f = 0; f < fctr; f++)
+		printf("\n\t\"%s\",", filename[f]);
+	printf("\n\t0\n};\n");
 }
 
 /****** utility functions ******/

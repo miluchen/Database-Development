@@ -1,0 +1,55 @@
+
+/* ---------- CBS ---------- */
+
+char *denames[] = {
+	"CLIENT_NO",
+	"CLIENT_NAME",
+	"ADDRESS",
+	"CITY",
+	"STATE",
+	"ZIP",
+	"PHONE",
+	"AMT_DUE",
+	"PROJECT_NO",
+	"PROJECT_NAME",
+	"AMT_EXPENDED",
+	"CONSULTANT_NO",
+	"CONSULTANT_NAME",
+	"RATE",
+	"PAYMENT",
+	"EXPENSE",
+	"HOURS",
+	"DATE_PAID",
+	0
+};
+
+char eltype[] = "ZAAAANNCZACZACCCND";
+
+char *elmask[] = {
+	"_____",
+	"_________________________",
+	"_________________________",
+	"_________________________",
+	"__",
+	"_____",
+	"(___)___-____",
+	"$______.__",
+	"_____",
+	"_________________________",
+	"$_______.__",
+	"_____",
+	"_________________________",
+	"_____",
+	"$_______.__",
+	"$_______.__",
+	"__",
+	"__/__/__"
+};
+
+char *dbfiles[] = {
+	"CLIENTS",
+	"PROJECTS",
+	"CONSULTANTS",
+	"ASSIGNMENTS",
+	0
+};
