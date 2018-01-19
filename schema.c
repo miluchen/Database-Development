@@ -1,5 +1,6 @@
 /******************** schema.c *********************/
-/* Read a file from the standard input.
+/* It is a simple compiler that compiles DDL statements into C statements
+ * Read a file from the standard input.
  * Write one of three schema files to the standard output depending on the runtime switch:
  * If -1 is on the command line, the #define statements are built
  * If -2 is on the command line, the file of ascii strings for file and data element names is built

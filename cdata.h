@@ -49,8 +49,8 @@ extern int **index_ele [];	/* index data elements			*/
 #endif
 
 /********************* file header **************************/
-typedef struct fhdr {
-	RPTR first_record;
-	RPTR next_record;
-	int record_length;
+typedef struct fhdr {	/* header on each file */
+	RPTR first_record;	/* first available deleted record */
+	RPTR next_record;	/* next available record position */
+	int record_length;	/* length of record */
 } FHEADER;
