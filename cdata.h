@@ -43,8 +43,15 @@ extern int *file_ele [];	/* file data elements			*/
 extern int **index_ele [];	/* index data elements			*/
 
 /************* data base function definitions ***************/
+void db_open(char *, int *);
+void db_cls();
+void dberror();
+void init_rcd(int, char *);
+void clrrcd(char *, int *);
+void rcd_fill(char *, char *, int *, int *);
+void build_index();
 
-/************* data base function definitions ***************/
+/************* screen dirver function definitions ***************/
 
 #endif
 
