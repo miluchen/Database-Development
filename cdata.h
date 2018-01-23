@@ -14,6 +14,9 @@
 #include <fcntl.h>
 #include <ctype.h>
 
+#define CMODE 0666
+#define OPENMODE O_RDWR
+
 #define NODE	512		/* length of a B-tree node			*/
 #define RPTR	long	/* B-tree node and file address		*/
 #define MXFILS	11		/* maximum files in a data base		*/
