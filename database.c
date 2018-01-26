@@ -1,8 +1,22 @@
 /********************** database.c ***********************/
 
 #include <stdio.h>
+#include <string.h>
 #include "cdata.h"
 #include "keys.h"
+
+void build_b();			/* builds a new B-tree			*/
+RPTR locate();			/* searches a B-tree for a key	*/
+RPTR nextkey();			/* gets address of the next key	*/
+RPTR prevkey();			/* gets address of the previous key	*/
+RPTR firstkey();		/* gets address of first key	*/
+RPTR lastkey();			/* gets address of last key		*/
+RPTR currkey();			/* gets address of current key	*/
+void file_close();		/* closes a data file			*/
+RPTR new_record();		/* adds a record to a file		*/
+void init_index();
+void cls_index();
+void del_indexes();
 
 int db_opened = FALSE;	/* data base opened indicator	*/
 int curr_fd[MXFILS];	/* current file descriptor		*/
@@ -23,7 +37,7 @@ void db_open(char *path, int *fl) {
 	if (!db_opened) {
 		for (i = 0; i < MXFILS; i++)
 			curr_fd[i] = -1;
-		dp_opened = TRUE;
+		db_opened = TRUE;
 	}
 
 	strcpy(dbpath, path);
@@ -235,6 +249,17 @@ void clrrcd(char *bf, int *els) { /* els: data element list */
 /****** move data from one record to another ******/
 void rcd_fill(char *s, char *d, int *slist, int *dlist) {
 	int *s1, *d1;
+
+	s1 = slist;
+	while (*s1) {
+		d1 = dlist;
+		while (*d1) {
+			if (*s1 == *d1)
+				strcpy(d + epos(*d1, dlist), s + epos(*s1, slist));
+			d1++;
+		}
+		s1++;
+	}
 }
 
 /****** compute relative position of a data element within a record ******/
@@ -355,6 +380,44 @@ void cls_index(int f) {
 	}
 }
 
+/****** add index values from a record to the indices ******/
+int add_indexes(int f, char *bf, RPTR ad) {
+	int x = 0, i;
+	char key[MXKEYLEN];
+
+	while (*(index_ele[f] + x)) {
+		*key = '\0';
+		i = 0;
+		while (*(*(index_ele[f] + x) + i))
+			strcat(key, bf + epos(*(*(index_ele[f]+x) + (i++)), file_ele[f]));
+		if (insertkey(bfd[f][x], key, ad, !x) == ERROR) // TODO
+			return ERROR;
+		x++;
+	}		
+	return OK;
+}
+
+/****** delete index values in a record from the indices ******/
+void del_indexes(int f, RPTR ad) {
+	char *bf;
+	int x = 0, i;
+	char key[MXKEYLEN];
+
+	if ((bf = malloc(rlen(f))) == NULL) {
+		errno = D_OM;
+		dberrror();
+	}
+	get_record(curr_fd[f], ad, bf);
+	while (*(index_ele[f] + x)) {
+		*key = '\0';
+		i = 0;
+		while (*(*(index_ele[f] + x) + i))
+			strcat(key, bf + epos(*(*(index_ele[f] + x) + (i++)), file_ele[f]));
+		deletekey(bfd[f][x++], key, ad);
+	}
+	free(bf);
+}
+
 /****** error message ******/
 void error_message(char *s) {
 	put_char(BELL);
@@ -384,4 +447,41 @@ void post_notice(char *s) {
 	}
 	cursor(prev_col, prev_row);
 	notice_posted = TRUE;
+}
+
+/****** move a block ******/
+void mov_mem(char *s, char *d, int l) {
+	if (d > s)
+		while (l--)
+			*(d + l) = *(s + l);
+	else
+		while (l--)
+			*d++ = *s++;
+}
+
+/****** convert a file name into its file token.
+		return the token,
+		or ERROR if the file name is not in the schema ******/
+int filename(char *fn) {
+	char fname[32];
+	int f;
+
+	name_cvt(fname, fn);
+	for (f = 0; dbfiles[f]; f++)
+		if (strcmp(fname, dbfiles[f]) == 0)
+			break;
+	if (dbfiles[f] == 0) {
+		fprintf(stderr, "\nNo such file as %s", fname);
+		return ERROR;
+	}
+	return f;
+}
+
+/****** convert a name to upper case ******/
+void name_cvt(char *c2, char *c1) {
+	while (*c1) {
+		*c2 = toupper(*c1);
+		c1++, c2++;
+	}
+	*c2 = '\0';
 }

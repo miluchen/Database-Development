@@ -45,6 +45,10 @@ extern int ellen [];		/* data element lengths			*/
 extern int *file_ele [];	/* file data elements			*/
 extern int **index_ele [];	/* index data elements			*/
 
+/******************* helper functions *************************/
+void mov_mem();
+void cls_file();
+
 /************* data base function definitions ***************/
 void db_open(char *, int *);
 void db_cls();
