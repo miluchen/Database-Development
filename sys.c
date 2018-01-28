@@ -12,8 +12,8 @@
 int get_char() {
 	int c;
 
-	if (!(c = getch()))
-		c = getch() | 128;
+	if (!(c = getchar()))
+		c = getchar() | 128;
 	return c & 255;
 }
 

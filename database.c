@@ -405,7 +405,7 @@ void del_indexes(int f, RPTR ad) {
 
 	if ((bf = malloc(rlen(f))) == NULL) {
 		errno = D_OM;
-		dberrror();
+		dberror();
 	}
 	get_record(curr_fd[f], ad, bf);
 	while (*(index_ele[f] + x)) {

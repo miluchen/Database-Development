@@ -48,6 +48,7 @@ extern int **index_ele [];	/* index data elements			*/
 /******************* helper functions *************************/
 void mov_mem();
 void cls_file();
+void put_char();
 
 /************* data base function definitions ***************/
 void db_open(char *, int *);
