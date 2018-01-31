@@ -1,6 +1,8 @@
 /************************
  *	global definitions  *
  ************************/
+#ifndef _CDATA_H_
+#define _CDATA_H_
 
 #define ERROR -1
 #define OK 0
@@ -46,9 +48,15 @@ extern int *file_ele [];	/* file data elements			*/
 extern int **index_ele [];	/* index data elements			*/
 
 /******************* helper functions *************************/
-void mov_mem();
-void cls_file();
-void put_char();
+void mov_mem(char *s, char *d, int l);
+// void cls_file();
+void build_b(char *name, int len);
+void put_char(int c);
+void clear_screen();
+void cursor();
+void error_message();
+void clear_notice();
+void post_notice();
 
 /************* data base function definitions ***************/
 void db_open(char *, int *);
@@ -60,6 +68,12 @@ void rcd_fill(char *, char *, int *, int *);
 void build_index();
 
 /************* screen dirver function definitions ***************/
+void init_screen();
+void protect();
+void edit();
+void diplay_template();
+void tally();
+void put_field();
 
 #endif
 
@@ -69,3 +83,7 @@ typedef struct fhdr {	/* header on each file */
 	RPTR next_record;	/* next available record position */
 	int record_length;	/* length of record */
 } FHEADER;
+
+extern FHEADER fh[];
+
+#endif

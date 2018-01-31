@@ -2,21 +2,20 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "cdata.h"
+#include <stdlib.h>
+#include "database.h"
+#include "datafile.h"
+#include "btree.h"
 #include "keys.h"
 
-void build_b();			/* builds a new B-tree			*/
-RPTR locate();			/* searches a B-tree for a key	*/
-RPTR nextkey();			/* gets address of the next key	*/
-RPTR prevkey();			/* gets address of the previous key	*/
-RPTR firstkey();		/* gets address of first key	*/
-RPTR lastkey();			/* gets address of last key		*/
-RPTR currkey();			/* gets address of current key	*/
-void file_close();		/* closes a data file			*/
-RPTR new_record();		/* adds a record to a file		*/
-void init_index();
-void cls_index();
-void del_indexes();
+static int treeno(int f, int k);		/* compute tree number from file and key number */
+static void init_index(char *path, int f);
+static void cls_index(int f);
+static void del_indexes(int f, RPTR ad);
+static int rel_rcd(int f, RPTR ad, char *bf);
+static int getrcd(int f, RPTR ad, char *bf);
+static int relate_rcd(int f, char *bf);
+static int data_in(char *c);
 
 int db_opened = FALSE;	/* data base opened indicator	*/
 int curr_fd[MXFILS];	/* current file descriptor		*/
@@ -222,12 +221,12 @@ void dberror() {
 
 /****** compute file record length ******/
 int rlen(int f) {
-	reutrn epos(0, file_ele[f]);
+	return epos(0, file_ele[f]);
 }
 
 /****** initialize a file record buffer ******/
 void init_rcd(int f, char *bf) {
-	clrrd(bf, file_ele[f]);
+	clrrcd(bf, file_ele[f]);
 }
 
 /****** set a generic record buffer to blanks ******/
@@ -266,7 +265,7 @@ void rcd_fill(char *s, char *d, int *slist, int *dlist) {
 int epos(int el, int *list) {
 	int len = 0;
 
-	while (el != *list) {
+	while (el != *list)
 		len += ellen[(*list++)-1] + 1; /* plus 1 --> terminate '\0' */
 	return len;
 }
@@ -283,7 +282,7 @@ int relate_rcd(int f, char *bf) {
 	static int ff[] = {0, -1};
 	char *cp;
 
-	while (dpfiles[fx]) {
+	while (dbfiles[fx]) {
 		if (fx != f && *(*(index_ele[fx]) + 1) == 0) {
 			mx = *(*(index_ele[fx]));
 			fp = file_ele[f];
@@ -465,6 +464,7 @@ void mov_mem(char *s, char *d, int l) {
 int filename(char *fn) {
 	char fname[32];
 	int f;
+	void name_cvt(char *, char *);
 
 	name_cvt(fname, fn);
 	for (f = 0; dbfiles[f]; f++)

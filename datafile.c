@@ -8,7 +8,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include "cdata.h"
+#include "datafile.h"
 
 #define flocate(r,l) ((long)(sizeof(FHEADER) + (((r)-1)*(l))))
 
