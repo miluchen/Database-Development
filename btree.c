@@ -155,20 +155,24 @@ static void bseek(RPTR nd) {
 }
 
 /****** search tree ******/
-static int btreescan(RPTR *t, char *k, char **a) {
-	int nl;
+static int btreescan(RPTR *nodenum, char *keyvalue, char **nodeadr) {
+	int nonleaf;
 	do {
-		if (nodescan(k, a)) {
-			while (compare_keys(*a, k) == FALSE) {
-				if (scanprev(t, a) == 0)
+		if (nodescan(keyvalue, nodeadr)) {
+			while (compare_keys(*nodeadr, keyvalue) == 0) {
+				if (scanprev(nodenum, nodeadr) == 0)
 					break;
 			}
-			if (compare_keys(*a, k))
-				scannext(t, a);
+			if (compare_keys(*nodeadr, keyvalue))
+				scannext(nodenum, nodeadr);
 			return TRUE;
 		}
-
-	} while (nl);
+		nonleaf = trnode.nonleaf;
+		if (nonleaf) {
+			*nodenum = *((RPTR *)(*nodeadr - ADR));
+			read_node(*nodenum, &trnode);
+		}
+	} while (nonleaf);
 	return FALSE;
 }
 
@@ -232,7 +236,7 @@ static int nodescan(char *keyvalue, char **nodeadr) {
 	*nodeadr = trnode.keyspace;
 	for (i=0; i<trnode.keyct; i++) {
 		result = compare_keys(keyvalue, *nodeadr);
-		if (result == FALSE)
+		if (result == 0)
 			return TRUE;
 		if (result < 0)
 			return FALSE;
@@ -242,6 +246,7 @@ static int nodescan(char *keyvalue, char **nodeadr) {
 }
 
 /****** compare keys ******/
+/* Returns 0, i.e. FALSE, if "a" and "b" are identical */
 static int compare_keys(char *a, char *b) {
 	int len = KLEN, cm;
 
