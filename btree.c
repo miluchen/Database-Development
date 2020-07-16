@@ -21,8 +21,9 @@ typedef struct treenode {
 	RPTR rtsib;		/* right sibling node		*/
 	int keyct;		/* number of keys			*/
 	RPTR key0;		/* node # of keys < 1st key this node	*/
-	/* a nonleaf node contains key + RPTR pairs, where RPTR indicates the associated b-tree node
-	 * a leaf node contains key + RPTR, where RPTR indicates the associated record position */
+	/* Each entry in keyspace is a key + RPTR pair with length of (KLEN + ADR).
+	 * For a nonleaf node, RPTR indicates the associated b-tree node.
+	 * For aleaf node, RPTR indicates the associated record position. */
 	char keyspace[NODE - ((sizeof(int) * 2) + (ADR * 4))];
 	char spil[MXKEYLEN];	/* for insertion excess */
 } BTREE;
@@ -119,25 +120,25 @@ void build_b(char *name, int len) {
  * If there are multiple identical key values in the tree, the first is returned.
  * If the key value is not in the tree, 0 is returned.
  */
-RPTR locate(int tree, char *k) {
-	int i, fnd = FALSE;
-	RPTR t, ad;
-	char *a;
+RPTR locate(int tree, char *key) {
+	int idx, fnd = FALSE;
+	RPTR node, ans;
+	char *adr;
 
 	trx = tree;
-	t = bheader[trx].rootnode;
-	if (t) {
-		read_node(t, &trnode);
-		fnd = btreescan(&t, k, &a);
-		ad = leaflevel(&t, &a, &i);
-		if (i == trnode.keyct + 1) {  // TODO: when does this happen and why?
-			i = 0;
-			t = trnode.rtsib;
+	node = bheader[trx].rootnode;
+	if (node) {
+		read_node(node, &trnode);
+		fnd = btreescan(&node, key, &adr);
+		ans = leaflevel(&node, &adr, &idx);
+		if (idx == trnode.keyct + 1) {  // TODO: when does this happen and why?
+			idx = 0;
+			node = trnode.rtsib;
 		}
-		currnode[trx] = t;  // TODO: how is it used?
-		currkno[trx] = i;  // TODO: how is it used?
+		currnode[trx] = node;  // TODO: how is it used?
+		currkno[trx] = idx;  // TODO: how is it used?
 	}
-	return fnd ? ad : (RPTR) 0;
+	return fnd ? ans : (RPTR) 0;
 }
 
 /****** read a btree node ******/
@@ -155,92 +156,139 @@ static void bseek(RPTR nd) {
 }
 
 /****** search tree ******/
-static int btreescan(RPTR *nodenum, char *keyvalue, char **nodeadr) {
+static int btreescan(RPTR *nodeptr, char *key, char **entryadr) {
 	int nonleaf;
 	do {
-		if (nodescan(keyvalue, nodeadr)) {
-			while (compare_keys(*nodeadr, keyvalue) == 0) {
-				if (scanprev(nodenum, nodeadr) == 0)
+		if (nodescan(key, entryadr)) {
+			while (compare_keys(*entryadr, key) == 0) {
+				/* keep scanning previous key if they are the same */
+				if (scanprev(nodeptr, entryadr) == 0)
 					break;
 			}
-			if (compare_keys(*nodeadr, keyvalue))
-				scannext(nodenum, nodeadr);
+			/* if previous key is not the same with key, scan next */
+			if (compare_keys(*entryadr, key))
+				scannext(nodeptr, entryadr);
 			return TRUE;
 		}
 		nonleaf = trnode.nonleaf;
 		if (nonleaf) {
-			*nodenum = *((RPTR *)(*nodeadr - ADR));
-			read_node(*nodenum, &trnode);
+			/* (*entryadr - ADR) points to the child that may contain key */
+			*nodeptr = *((RPTR *)(*entryadr - ADR));
+			read_node(*nodeptr, &trnode);
 		}
 	} while (nonleaf);
 	return FALSE;
 }
 
 /****** scan to the previous sequential key ******/
-static RPTR scanprev(RPTR *p, char **a) {
-	RPTR cn;
+/* find the previous key of adr which is in node *p currently */
+static RPTR scanprev(RPTR *nodeptr, char **adr) {
+	RPTR child;
 
 	if (trnode.nonleaf) {
-		*p = *((RPTR *)(*a - ADR));
-		read_node(*p, &trnode);
+		*nodeptr = *((RPTR *)(*adr - ADR));
+		read_node(*nodeptr, &trnode);
 		while (trnode.nonleaf) {
 			/* read the last node in trnode */
-			*p = *((RPTR *)(trnode.keyspace + trnode.keyct * ENTLN - ADR));
-			read_node(*p, &trnode);
+			*nodeptr = *((RPTR *)(trnode.keyspace + trnode.keyct * ENTLN - ADR));
+			read_node(*nodeptr, &trnode);
 		}
-		*a = trnode.keyspace + (trnode.keyct - 1) * ENTLN;
-		return *((RPTR *)(*a + KLEN));
+		/* get the last key in trnode */
+		*adr = trnode.keyspace + (trnode.keyct - 1) * ENTLN;
+		return *((RPTR *)(*adr + KLEN));
 	}
 	while (-1) {
-		if (trnode.keyspace != *a) {
-			*a -= ENTLN;
-			return fileaddr(*p, *a);  // TODO: ???
+		if (trnode.keyspace != *adr) {
+			*adr -= ENTLN;
+			/* return the RPTR of the record in data file */
+			return fileaddr(*nodeptr, *adr);
 		}
-
+		if (trnode.prntnode == 0 || trnode.lfsib == 0)
+			break;
+		child = *nodeptr;
+		*nodeptr = trnode.prntnode;
+		read_node(*nodeptr, &trnode);
+		*adr = trnode.keyspace;
+		/* find where this child is in parent node */
+		while (*((RPTR *)(*adr - ADR)) != child)
+			*adr += ENTLN;
 	}
+	return (RPTR) 0;
+}
+
+/****** scan to the next sequential key ******/
+static RPTR scannext(RPTR *nodeptr, char **adr) {
+	RPTR child;
+
+	if (trnode.nonleaf) {
+		*nodeptr = *((RPTR *)(*adr + KLEN));
+		read_node(*nodeptr, &trnode);
+		while (trnode.nonleaf) {
+			/* get the first node in trnode */
+			*nodeptr = trnode.key0;
+			read_node(*nodeptr, &trnode);
+		}
+		/* get the first key in trnode */
+		*adr = trnode.keyspace;
+		return *((RPTR *)(*adr + KLEN));
+	}
+	*adr += ENTLN;
+	while (-1) {
+		if ((trnode.keyspace + trnode.keyct * ENTLN) != *adr)
+			return fileaddr(*nodeptr, *adr);
+		if (trnode.prntnode == 0 || trnode.rtsib == 0)
+			break;
+		child = *nodeptr;
+		*nodeptr = trnode.prntnode;
+		read_node(*nodeptr, &trnode);
+		*adr = trnode.keyspace;
+		while (*((RPTR *)(*adr - ADR)) != child)
+			*adr += ENTLN;
+	}
+	return (RPTR) 0;
 }
 
 /****** compute current file address ******/
-static RPTR fileaddr(RPTR t, char *a) {
-	RPTR cn, ti;
-	int i;
+static RPTR fileaddr(RPTR node, char *adr) {
+	RPTR rec, tmp;
+	int idx;
 
-	ti = t;
-	cn = leaflevel(&ti, &a, &i);
-	read_node(t, &trnode);
-	return cn;
+	tmp = node;
+	rec = leaflevel(&tmp, &adr, &idx);
+	read_node(node, &trnode);
+	return rec;
 }
 
 /****** navigate down to leaf level ******/
 /* This function returns the associated RPTR of the file record. */
-static RPTR leaflevel(RPTR *t, char **a, int *p) {
+static RPTR leaflevel(RPTR *nodeptr, char **adr, int *idx) {
 	if (trnode.nonleaf == FALSE) {
-		*p = (*a - trnode.keyspace) / ENTLN + 1;
-		return *((RPTR *)(*a + KLEN));
+		*idx = (*adr - trnode.keyspace) / ENTLN + 1;
+		return *((RPTR *)(*adr + KLEN));
 	}
-	*p = 0;
-	*t = *((RPTR *)(*a + KLEN));
-	read_node(*t, &trnode);
-	*a = trnode.keyspace;  // TODO: this seems to be not useful?
+	*idx = 0;
+	*nodeptr = *((RPTR *)(*adr + KLEN));
+	read_node(*nodeptr, &trnode);
+	*adr = trnode.keyspace;  // TODO: this seems to be not useful?
 	while (trnode.nonleaf) {
-		*t = trnode.key0;
-		read_node(*t, &trnode);
+		*nodeptr = trnode.key0;
+		read_node(*nodeptr, &trnode);
 	}
 	return trnode.key0;
 }
 
 /****** search node ******/
-static int nodescan(char *keyvalue, char **nodeadr) {
+static int nodescan(char *keyvalue, char **entryadr) {
 	int i, result;
 
-	*nodeadr = trnode.keyspace;
+	*entryadr = trnode.keyspace;
 	for (i=0; i<trnode.keyct; i++) {
-		result = compare_keys(keyvalue, *nodeadr);
+		result = compare_keys(keyvalue, *entryadr);
 		if (result == 0)
 			return TRUE;
 		if (result < 0)
 			return FALSE;
-		*nodeadr += ENTLN;
+		*entryadr += ENTLN;
 	}
 	return FALSE;
 }
